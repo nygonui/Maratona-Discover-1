@@ -49,14 +49,42 @@ const transactions = [
 
 // Objeto com os métodos de somar entradas e despesas, e fazer o total
 const Transaction = {
+    //refatoração -> para deixar mais claro e poder expandir o código futuramente
+    all: transactions,
     incomes() {
-        // somar entradas
+        //somar todas as entradas
+        let income = 0;
+
+        //método forEach passando como argumento uma arrow function
+        //pegar os amount das transações
+        Transaction.all.forEach(transaction => {
+            //verificar se são maiores que 0 e soma-las
+            if(transaction.amount > 0){
+                income += transaction.amount; 
+            }
+        })
+
+        return income;
     },
     expenses() {
-        // somar despesas
+        //somar todas as saídas
+        let expense = 0;
+
+        //forEach, passando como argumento uma arrow function
+        //pega o amount das transações
+        Transaction.all.forEach(transaction => {
+            //verifica se são menores que 0 e soma elas
+            if(transaction.amount < 0){
+                expense += transaction.amount;
+            }
+        })
+   
+        return expense;
     },
     total() {
-        // entradas - saídas
+        let total = Transaction.incomes() + Transaction.expenses()
+        
+        return total; 
     }
 }
 
@@ -75,7 +103,6 @@ const DOM = {
         const tr = document.createElement('tr')
         tr.innerHTML = DOM.innerHTMLTransaction(transaction)
 
-        const amount = Utils.formatCurrency(transaction.amount)
 
         //chama o atributo do nosso objeto DOM e usa o método appendChild
         //appendChild irá adicionar o elemento tr(argumento) 
@@ -88,22 +115,52 @@ const DOM = {
 
         const CSSclass = transaction.amount > 0 ? "income" : "expense"
 
+        const amount = Utils.formatCurrency(transaction.amount)
+
         //criando um corpo de html 
         const html = `
             <td class="description">${transaction.description}</td>
-            <td class="${CSSclass}">${transaction.amount}</td>
+            <td class="${CSSclass}">${amount}</td>
             <td class="date">${transaction.date}</td>
             <td> 
                 <img src="./assets/minus.svg" alt="Apagar Transação"> 
             </td>
         `
         return html
+    },
+
+    updateBalance() {
+        document
+            .getElementById('incomeDisplay')
+            .innerHTML = Utils.formatCurrency(Transaction.incomes())
+        document
+            .getElementById('expenseDisplay')
+            .innerHTML = Utils.formatCurrency(Transaction.expenses())
+        document
+            .getElementById('totalDisplay')
+            .innerHTML = Utils.formatCurrency(Transaction.total())
     }
 }
 
 const Utils = {
     formatCurrency(value) {
         const signal = Number(value) < 0 ? "-" : ""
+
+        //.replace(/\D/g, "algo") -> /0/g faz que troque todos os 0 da string
+        //por "algo", usando o /\D/g vai trocar tudo o que não é número por
+        //algo
+        value = String(value).replace(/\D/g, "")
+
+        value = Number(value) / 100
+
+        //formatação para a moeda brasileira
+        value = value.toLocaleString("pt-BR",{
+            style: "currency",
+            currency: "BRL"
+        })
+
+        return signal + value
+
     }
 }
 
@@ -113,3 +170,5 @@ const Utils = {
 transactions.forEach(function(transaction) {
     DOM.addTransaction(transaction)
 })
+
+DOM.updateBalance()
