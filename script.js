@@ -18,35 +18,31 @@ const Modal = {
     }
 }
 
-// Array com as informações das transações
-const transactions = [
-    {
-        description: 'Luz',
-        amount: -50000,
-        date: '23/01/2021'
+const Storage = {
+    get(){
+        //Retorna um dado que era JSON agora em Array usando o método parse()
+        //o método getItem busca a chave passada e o jogo lógico para 
+        //retornar um Array vazio caso a primeira propriedade não seja verdade
+        //é para a função retornar um array de qualquer forma
+        return JSON.parse(localStorage.getItem("dev.finace:transactions")) || []
     },
-    {
-        description: 'Criação website',
-        amount: 500000,
-        date: '23/01/2021'
-    },
-    {
-        description: 'Internet',
-        amount: -20000,
-        date: '23/01/2021'
-    },
-    {
-        description: 'App',
-        amount: 200000,
-        date: '23/01/2021'
+
+    set(transactions){
+        
+        //localStorage da acesso ao objeto Storage local, armazena dados
+        //setItem("x", y) -> x = cahve / y = valor
+        //vamos guardar no Storage local um dado na chave dev.finace:tra...
+        //o valor passado esta transformando o nosso array em string com o uso do objeto e o método JSON.stringfy()
+        //pois o Storage só aceita string         
+        localStorage.setItem("dev.finance:transactions", JSON.stringify(transactions))
     }
-    
-]
+}
+
 
 // Objeto que mexe com as transações
 const Transaction = {
     //refatoração -> para deixar mais claro e poder expandir o código futuramente
-    all: transactions,
+    all: Storage.get(),
 
     add(transaction) {
         //push() -> método atrelado as listas que adiciona determinada
@@ -117,7 +113,10 @@ const DOM = {
         //cria um elemento com o método createElement do objeto document
         //como o parâmetro (string) que será o elemento criado
         const tr = document.createElement('tr')
-        tr.innerHTML = DOM.innerHTMLTransaction(transaction)
+        tr.innerHTML = DOM.innerHTMLTransaction(transaction, index)
+        //usando dataset.index=index para adiconar um atributo do tipo
+        //data-index="{index}", onde o {index} será o número do índice de acordo
+        //com a sua posição no array
         tr.dataset.index = index
 
 
@@ -140,7 +139,7 @@ const DOM = {
             <td class="${CSSclass}">${amount}</td>
             <td class="date">${transaction.date}</td>
             <td> 
-                <img onclik="Transaction.remove(${index})" src="./assets/minus.svg" alt="Apagar Transação"> 
+                <img onclick="Transaction.remove(${index})" src="./assets/minus.svg" alt="Apagar Transação"> 
             </td>
         `
         return html
@@ -287,13 +286,15 @@ const App = {
         //forEach é um método do objeto Array que significa 'para cada'
         //nesse caso estamos usando esse método no Array transactions, que para
         //cada indice irá executar a função passada como argumento do método forEach 
-        transactions.forEach((transaction, index) => {
+        Transaction.all.forEach((transaction, index) => {
             //adicona as novas transações na tabela de transações
             DOM.addTransaction(transaction,index)
         })
 
         //estamos atualizando os cards das entradas, saídas e total
         DOM.updateBalance()
+
+        Storage.set(Transaction.all)
     },
 
     reload() {
