@@ -21,25 +21,21 @@ const Modal = {
 // Array com as informações das transações
 const transactions = [
     {
-        id: 1,
         description: 'Luz',
         amount: -50000,
         date: '23/01/2021'
     },
     {
-        id: 2,
         description: 'Criação website',
         amount: 500000,
         date: '23/01/2021'
     },
     {
-        id: 3,
         description: 'Internet',
         amount: -20000,
         date: '23/01/2021'
     },
     {
-        id: 4,
         description: 'App',
         amount: 200000,
         date: '23/01/2021'
@@ -47,10 +43,28 @@ const transactions = [
     
 ]
 
-// Objeto com os métodos de somar entradas e despesas, e fazer o total
+// Objeto que mexe com as transações
 const Transaction = {
     //refatoração -> para deixar mais claro e poder expandir o código futuramente
     all: transactions,
+
+    add(transaction) {
+        //push() -> método atrelado as listas que adiciona determinada
+        //informação ao final da lista selecionada, nesse caso 
+        //Transaction.all === transaction[]
+        Transaction.all.push(transaction)
+
+        App.reload()
+    },
+
+    remove(index) {
+        //splice() -> método atrelado as listas que remove da lista 
+        //um dado de acordo com o index passado
+        Transaction.all.splice(index, 1)
+
+        App.reload()
+    },
+
     incomes() {
         //somar todas as entradas
         let income = 0;
@@ -66,6 +80,7 @@ const Transaction = {
 
         return income;
     },
+
     expenses() {
         //somar todas as saídas
         let expense = 0;
@@ -81,6 +96,7 @@ const Transaction = {
    
         return expense;
     },
+
     total() {
         let total = Transaction.incomes() + Transaction.expenses()
         
@@ -102,6 +118,7 @@ const DOM = {
         //como o parâmetro (string) que será o elemento criado
         const tr = document.createElement('tr')
         tr.innerHTML = DOM.innerHTMLTransaction(transaction)
+        tr.dataset.index = index
 
 
         //chama o atributo do nosso objeto DOM e usa o método appendChild
@@ -110,8 +127,8 @@ const DOM = {
         DOM.transactionContainer.appendChild(tr)
     },
 
-    //
-    innerHTMLTransaction(transaction) {
+    //coloca as informações no HTML
+    innerHTMLTransaction(transaction, index) {
 
         const CSSclass = transaction.amount > 0 ? "income" : "expense"
 
@@ -123,7 +140,7 @@ const DOM = {
             <td class="${CSSclass}">${amount}</td>
             <td class="date">${transaction.date}</td>
             <td> 
-                <img src="./assets/minus.svg" alt="Apagar Transação"> 
+                <img onclik="Transaction.remove(${index})" src="./assets/minus.svg" alt="Apagar Transação"> 
             </td>
         `
         return html
@@ -139,7 +156,12 @@ const DOM = {
         document
             .getElementById('totalDisplay')
             .innerHTML = Utils.formatCurrency(Transaction.total())
+    },
+
+    clearTransaction(){
+        DOM.transactionContainer.innerHTML = ""
     }
+
 }
 
 const Utils = {
@@ -161,14 +183,126 @@ const Utils = {
 
         return signal + value
 
+    },
+
+    formatAmount(value) {
+        value = Number(value) * 100 //para tirar o ponto ou virgula e podermos trabalhar com ele
+        
+        return value;
+    },
+
+    formatDate(date) {
+        //Por padrão o input do tipo date retorna uma string no formato de
+        //data americano yyyy-mm-dd, com o .split("-") estamos separando o
+        //essa data em um array, e seu critério de separação é o "-"
+        const splittedDate = date.split("-")
+        //Aqui estamos retornando a data no nosso formato de saída
+        // dd/mm/yyyy
+        return `${splittedDate[2]}/${splittedDate[1]}/${splittedDate[0]}`
+    },
+}
+
+const Form = {
+
+    //pegando os valores os inputs do form do html e salvando no atributos
+    description: document.querySelector("input#description"),
+    amount: document.querySelector("input#amount"),
+    date: document.querySelector("input#date"),
+
+    //pegando apenas os valores dos atributos que pegaram o input inteiro
+    getValues() {
+        return {
+            description: Form.description.value,
+            amount: Form.amount.value,
+            date: Form.date.value
+        }
+    },
+
+    validatedFields(){
+        //desestruturação
+        /* 
+            const description = Form.getValues().description
+            const amount = Form.getValues().amount
+            const date = Form.getValues().date
+
+             mesma coisa que
+        */
+        const {description, amount, date} = Form.getValues()
+        if(
+            description.trim() === "" ||
+             amount.trim() === "" || 
+             date.trim() === ""){
+                 throw new Error("Por favor, preencha todos os campos")
+             }
+    },
+
+    formatValues() {
+        let {description, amount, date} = Form.getValues()
+
+        amount = Utils.formatAmount(amount)
+
+        date = Utils.formatDate(date)
+
+        return {
+            description,
+            amount,
+            date
+        }
+    },
+
+    clearFields() {
+        Form.description.value = ""
+        Form.amount.value = ""
+        Form.date.value = ""
+    },
+
+    submit(event) {
+        //faz com que não ocorra o evento padrão, de colocar todas as 
+        //informações no link da página
+        event.preventDefault()
+
+        try{
+            //verificar se todos os campos forão preenchidos
+            Form.validatedFields()
+            //formatar os dados para salvar
+            const transaction = Form.formatValues()
+            //salvar
+            Transaction.add(transaction)
+            //apagar os dados do formulário
+            Form.clearFields()
+            //modal feche
+            Modal.close()
+            //atualizar aplicação
+            App.reload()
+        }catch(error){
+            alert(error.message)
+        }
+
+
     }
 }
 
-//for.Ecah é um método do objeto Array que significa 'para cada'
-//nesse caso estamos usando esse método no Array transactions, que para
-//cada indice irá executar a função passada como argumento do método forEach 
-transactions.forEach(function(transaction) {
-    DOM.addTransaction(transaction)
-})
+const App = {
+    initi() {
+        //forEach é um método do objeto Array que significa 'para cada'
+        //nesse caso estamos usando esse método no Array transactions, que para
+        //cada indice irá executar a função passada como argumento do método forEach 
+        transactions.forEach((transaction, index) => {
+            //adicona as novas transações na tabela de transações
+            DOM.addTransaction(transaction,index)
+        })
 
-DOM.updateBalance()
+        //estamos atualizando os cards das entradas, saídas e total
+        DOM.updateBalance()
+    },
+
+    reload() {
+        DOM.clearTransaction()
+        App.initi()
+    }
+}
+
+App.initi()
+
+
+
